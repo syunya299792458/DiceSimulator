@@ -65,6 +65,7 @@
                 results,
                 targetProb: results.find(r => r.sum === targetSum)?.probability || "0.00000",
                 targetCumProb: results.filter(r => r.sum >= targetSum).reduce((acc, r) => acc + parseFloat(r.probability), 0).toFixed(5),
+                targetCamProb: results.filter(r => r.sum <= targetSum).reduce((acc, r) => acc + parseFloat(r.probability), 0).toFixed(5),
                 targetSum: targetSum
             };
         }
@@ -72,11 +73,12 @@
         function runSimulation() {
             const N = parseInt(document.getElementById('diceCount').value);
             const target = parseInt(document.getElementById('targetSum').value);
-            const { results, targetProb, targetCumProb, targetSum } = simulateDice(N, target);
+            const { results, targetProb, targetCumProb, targetCamProb, targetSum } = simulateDice(N, target);
 
             const resultText = `
                 出目 ${target} の確率：<span style="font-size: 1.4rem; color: red;">${targetProb}%</span><br>
-                ${target} 以上が出る確率：<span style="font-size: 1.4rem; color: red;">${targetCumProb}%</span>
+                ${target} 以上が出る確率：<span style="font-size: 1.4rem; color: red;">${targetCumProb}%</span><br>
+                ${target} 以下が出る確率：<span style="font-size: 1.4rem; color: red;">${targetCamProb}%</span>
             `;
             document.getElementById('resultText').innerHTML = resultText;
 
