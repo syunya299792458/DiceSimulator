@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="サイコロ確率">
+    <link rel="apple-touch-icon" href="icon.png">
+    <title>サイコロ確率シミュレーター</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        input, button { font-size: 1rem; margin: 5px; }
+        #resultText { font-size: 1.2rem; font-weight: bold; margin-top: 10px; }
+        table { margin-top: 10px; border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ccc; padding: 5px; text-align: center; }
+        #chartContainer { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>🎲 サイコロ確率シミュレーター</h1>
+    <label>サイコロの個数: <input type="number" id="diceCount" value="2"></label><br>
+    <label>知りたい出目の合計: <input type="number" id="targetSum" value="7"></label><br>
+    <button onclick="runSimulation()">シミュレーション実行</button>
+
+    <p id="resultText"></p>
+    <div id="chartContainer">
+        <canvas id="resultChart" width="400" height="200"></canvas>
+    </div>
+    <table id="resultTable"></table>
+
+    <script>
+        let chartInstance = null;
+
+        function simulateDice(N, targetSum) {
+            const freq = Array(6 * N + 1).fill(0);
+
+            const roll = (depth, currentSum) => {
+                if (depth === N) {
+                    freq[currentSum]++;
+                    return;
+                }
+                for (let i = 1; i <= 6; i++) {
+                    roll(depth + 1, currentSum + i);
+                }
+            };
+
+            roll(0, 0);
+
+            const total = freq.reduce((a, b) => a + b, 0);
+            let cumulative = 0;
+            const results = [];
+
+            for (let i = N; i <= 6 * N; i++) {
+                const prob = (freq[i] / total) * 100;
+                cumulative += prob;
+                results.push({
+                    sum: i,
+                    probability: prob.toFixed(5),
+                    cumulative: cumulative.toFixed(5),
+                });
+            }
+
+            return {
+                results,
+                targetProb: results.find(r => r.sum === targetSum)?.probability || "0.00000",
+                targetCumProb: results.filter(r => r.sum >= targetSum).reduce((acc, r) => acc + parseFloat(r.probability), 0).toFixed(5),
+                targetSum: targetSum
+            };
+        }
+
+        function runSimulation() {
+            const N = parseInt(document.getElementById('diceCount').value);
+            const target = parseInt(document.getElementById('targetSum').value);
+            const { results, targetProb, targetCumProb, targetSum } = simulateDice(N, target);
+
+            const resultText = `
+                出目 ${target} の確率：<span style="font-size: 1.4rem; color: red;">${targetProb}%</span><br>
+                ${target} 以上が出る確率：<span style="font-size: 1.4rem; color: red;">${targetCumProb}%</span>
+            `;
+            document.getElementById('resultText').innerHTML = resultText;
+
+            const table = document.getElementById('resultTable');
+            table.innerHTML = "<tr><th>出目の合計</th><th>確率(%)</th><th>累積確率(%)</th></tr>";
+            const labels = [];
+            const data = [];
+            const colors = [];
+
+            results.forEach(r => {
+                table.innerHTML += `<tr><td>${r.sum}</td><td>${r.probability}</td><td>${r.cumulative}</td></tr>`;
+                labels.push(r.sum);
+                data.push(r.probability);
+                colors.push(r.sum === target ? 'rgba(255, 99, 132, 0.8)' : 'rgba(54, 162, 235, 0.6)');
+            });
+
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            const ctx = document.getElementById('resultChart').getContext('2d');
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '出目の確率 (%)',
+                        data: data,
+                        backgroundColor: colors,
+                        borderColor: colors.map(c => c.replace('0.6', '1')),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '確率 (%)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: '出目の合計'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
